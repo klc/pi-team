@@ -103,7 +103,7 @@ class AgentModelPicker implements Component {
   private modelList: SelectList;
 
   private onDone: () => void;
-  private onNotify: (msg: string, type: "info" | "success" | "warning" | "error") => void;
+  private onNotify: (msg: string, type: "info" | "warning" | "error") => void;
   private requestRender: () => void;
   private theme: any;
 
@@ -112,7 +112,7 @@ class AgentModelPicker implements Component {
     availableModels: { provider: string; id: string; name?: string }[],
     theme: any,
     onDone: () => void,
-    onNotify: (msg: string, type: "info" | "success" | "warning" | "error") => void,
+    onNotify: (msg: string, type: "info" | "warning" | "error") => void,
     requestRender: () => void
   ) {
     this.agents = agents;
@@ -134,6 +134,7 @@ class AgentModelPicker implements Component {
       selectedText: (t: string) => theme.fg("accent", t),
       description: (t: string) => theme.fg("muted", t),
       scrollInfo: (t: string) => theme.fg("dim", t),
+      noMatch: (t: string) => theme.fg("dim", t),
     });
     this.agentList.onSelect = (item) => this.enterModelMode(item.value);
     this.agentList.onCancel = () => onDone();
@@ -152,6 +153,7 @@ class AgentModelPicker implements Component {
       selectedText: (t: string) => theme.fg("accent", t),
       description: (t: string) => theme.fg("muted", t),
       scrollInfo: (t: string) => theme.fg("dim", t),
+      noMatch: (t: string) => theme.fg("dim", t),
     });
     this.modelList.onSelect = (item) => this.applyModel(item.value);
     this.modelList.onCancel = () => this.enterAgentMode();
@@ -176,6 +178,7 @@ class AgentModelPicker implements Component {
       selectedText: (t: string) => this.theme.fg("accent", t),
       description: (t: string) => this.theme.fg("muted", t),
       scrollInfo: (t: string) => this.theme.fg("dim", t),
+      noMatch: (t: string) => this.theme.fg("dim", t),
     });
     // Hack: set internal selected index via handleInput simulation
     // Actually, let's just rebuild with current model highlighted by scrolling
@@ -208,7 +211,7 @@ class AgentModelPicker implements Component {
       this.selectedAgent.currentModel = modelValue;
       this.onNotify(
         `Set ${this.selectedAgent.name} → ${modelValue}`,
-        "success"
+        "info"
       );
     }
 
@@ -302,7 +305,7 @@ export default function (pi: ExtensionAPI) {
   pi.registerCommand("agent:model", {
     description: "Assign models to agents via TUI",
     handler: async (_args, ctx) => {
-      const agents = listAgents(process.cwd());
+      const agents = listAgents(ctx.cwd);
       if (agents.length === 0) {
         ctx.ui.notify("No agents found in agents/", "warning");
         return;

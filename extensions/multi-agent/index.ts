@@ -137,7 +137,7 @@ export default function (pi: ExtensionAPI) {
 
       try {
         const { runAgent } = await import("./agent-runner.js");
-        const result = await runAgent(agent, task, ctx.signal);
+        const result = await runAgent(agent, task, ctx.signal, ctx.cwd);
 
         ctx.ui.setStatus("multi-agent", "");
 
@@ -156,7 +156,7 @@ export default function (pi: ExtensionAPI) {
         const formatted = formatResult(result);
         ctx.ui.notify(
           result.success ? "Agent completed successfully" : "Agent failed",
-          result.success ? "success" : "error"
+          result.success ? "info" : "error"
         );
 
         // Inject result as a system message so LLM can see it
@@ -221,7 +221,7 @@ Rules:
 `;
 
       // Send it as a user message to trigger LLM response
-      await ctx.sendUserMessage(planPrompt);
+      await pi.sendUserMessage(planPrompt);
     },
   });
 
@@ -297,10 +297,11 @@ Rules:
         content: [
           { type: "text", text: `Spawning ${agent.name} process...` },
         ],
+        details: {},
       });
 
       const { runAgent } = await import("./agent-runner.js");
-      const result = await runAgent(agent, params.task, signal);
+      const result = await runAgent(agent, params.task, signal, ctx.cwd);
 
       // Persist to session
       pi.appendEntry("agent-run", {
@@ -373,11 +374,13 @@ Rules:
                 text: `▶ Running ${agentName}: ${task.slice(0, 80)}...`,
               },
             ],
+            details: {},
           });
         },
         (result) => {
           results.push(formatResult(result));
-        }
+        },
+        ctx.cwd
       );
 
       return {

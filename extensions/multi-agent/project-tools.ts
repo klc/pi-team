@@ -420,7 +420,15 @@ export function registerComplexityScoreTool(pi: ExtensionAPI) {
     async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
       const threshold = params.threshold ?? 10;
       const top = params.top ?? 10;
-      const targetPath = path.join(ctx.cwd, params.path);
+      const targetPath = path.resolve(ctx.cwd, params.path);
+      const relativePath = path.relative(ctx.cwd, targetPath);
+      if (relativePath.startsWith("..") || relativePath === "..") {
+        return {
+          content: [{ type: "text", text: `Path is outside project root: ${params.path}` }],
+          isError: true,
+          details: {},
+        };
+      }
 
       if (!fs.existsSync(targetPath)) {
         return {

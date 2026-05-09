@@ -10,7 +10,8 @@ import type { AgentDefinition, AgentRunResult } from "./types.js";
 export async function runAgent(
   agent: AgentDefinition,
   task: string,
-  signal?: AbortSignal
+  signal?: AbortSignal,
+  cwd?: string
 ): Promise<AgentRunResult> {
   const startTime = Date.now();
 
@@ -37,6 +38,7 @@ export async function runAgent(
   const child = spawn("pi", [...args, task], {
     stdio: ["ignore", "pipe", "pipe"],
     env: { ...process.env },
+    cwd,
   });
 
   return new Promise((resolve, reject) => {

@@ -35,7 +35,7 @@ export class Orchestrator {
       // 1. architect → Design login flow with JWT
       // 2. coder: Implement auth controller
       const match = trimmed.match(
-        /^\d+\.\s*(\w+)\s*(?:→|:|-)\s*(.+)$/i
+        /^\d+\.\s*([\w-]+)\s*(?:→|:|-)\s*(.+)$/i
       );
       if (match) {
         const [, agentName, task] = match;
@@ -54,7 +54,8 @@ export class Orchestrator {
     plan: AgentPlan,
     signal?: AbortSignal,
     onTaskStart?: (agentName: string, task: string) => void,
-    onTaskComplete?: (result: AgentRunResult) => void
+    onTaskComplete?: (result: AgentRunResult) => void,
+    cwd?: string
   ): Promise<PlanExecutionResult> {
     const results: AgentRunResult[] = [];
     let accumulatedContext = "";
@@ -83,7 +84,7 @@ export class Orchestrator {
 
       onTaskStart?.(agent.name, task.task);
 
-      const result = await runAgent(agent, contextualTask, signal);
+      const result = await runAgent(agent, contextualTask, signal, cwd);
       results.push(result);
       onTaskComplete?.(result);
 

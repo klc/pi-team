@@ -19,11 +19,11 @@ export class AgentRegistry implements IAgentRegistry {
   }
 
   private loadAgents(): void {
-    this.loadFromDir(this.agentsDir);
-
     if (this.builtInAgentsDir && path.resolve(this.builtInAgentsDir) !== path.resolve(this.agentsDir)) {
       this.loadFromDir(this.builtInAgentsDir);
     }
+
+    this.loadFromDir(this.agentsDir);
   }
 
   private loadFromDir(dir: string): void {
