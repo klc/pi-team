@@ -27,6 +27,7 @@ import {
   registerGraphifyTools,
 } from "./project-tools.js";
 import { checkGraphify, getGraphSummary } from "./graphify.js";
+import { registerOpenSpecCommands } from "./openspec.js";
 
 const BUILTIN_AGENTS_DIR = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -85,6 +86,7 @@ export default function (pi: ExtensionAPI) {
   // ── Session lifecycle ──────────────────────────────────────────────
   pi.on("session_start", async (event, ctx) => {
     init(ctx.cwd);
+    registerOpenSpecCommands(pi, formatAgentList, ctx.cwd);
     const count = registry.list().length;
     if (count > 0) {
       ctx.ui.notify(`Multi-agent system loaded (${count} agents)`, "info");

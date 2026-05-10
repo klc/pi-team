@@ -1,5 +1,5 @@
 ---
-description: Start a new feature end-to-end. Clarify scope, create acceptance criteria, then route to the appropriate lead agent(s).
+description: Start a new feature end-to-end using the OpenSpec workflow. Propose, plan, apply, verify, archive.
 argument-hint: "<feature description>"
 ---
 
@@ -14,58 +14,82 @@ If the request is ambiguous, ask the user clarifying questions (max 2–3). Use 
 - Present options: "X or Y?"
 - Never ask a bare question without context
 
-## Step 2 — Architecture Decisions (when needed)
+## Step 2 — Propose the Change
 
-Invoke the architect agent if technical decisions are needed:
-```
-/agent:run architect "Technical evaluation for: $ARGUMENTS"
-```
-
-Architecture input should resolve technical decisions only; you own the story context and routing.
-
-## Step 3 — Write Story Context & Acceptance Criteria
-
-Create a concise feature plan:
-
-```markdown
-# Feature: [title]
-
-## Story Context
-[one sentence: what the user wants and why]
-
-## Scope
-[backend | frontend | both]
-
-## Acceptance Criteria
-- [criterion 1]
-- [criterion 2]
-
-## Subtasks
-- [ ] Backend: [description]
-- [ ] Frontend: [description]
-
-## Risks
-- [risk 1]
-- [mitigation 1]
-```
-
-## Step 4 — Create Plan and Route
-
-Use `/agent:plan` to generate a structured multi-agent execution plan:
+Run the OpenSpec propose command:
 
 ```
-/agent:plan "Implement: [feature title]. Acceptance criteria: [list]"
+/opsx:propose $ARGUMENTS
 ```
 
-Then route to the appropriate lead(s):
+This will:
+1. Create `openspec/changes/<name>/`
+2. Scaffold the change metadata
 
-For `scope: "both"`, run backend and frontend leads in sequence or parallel:
-- `/agent:run backend-lead "Backend implementation for: [feature title]"`
-- `/agent:run frontend-lead "Frontend implementation for: [feature title]"`
+Then produce the planning artifacts using the OpenSpec skill:
 
-For `scope: "backend"` → `/agent:run backend-lead "..."`
-For `scope: "frontend"` → `/agent:run frontend-lead "..."`
+- **proposal.md** — Why, What, Scope, Non-Goals, Success Criteria
+- **specs/<domain>/spec.md** — Delta specs with RFC 2119 keywords and Given/When/Then scenarios
+- **design.md** — Components, data model, API changes, implementation plan
+- **tasks.md** — Numbered checklist tagged [Backend] / [Frontend] / [Test]
 
-## Step 5 — Monitor
+**Agent routing:**
+- `architect` → produces `design.md` (and ADRs if needed)
+- `project-manager` → produces `specs/` and `tasks.md`
 
-Track progress across agents. Surface problems early. Report to the user when the feature pipeline is complete.
+You may delegate to these agents using `delegate_task` or let the LLM generate artifacts directly.
+
+## Step 3 — Verify Planning Artifacts
+
+Before implementation, confirm:
+- [ ] `proposal.md` has clear scope and non-goals
+- [ ] `design.md` has components and implementation plan
+- [ ] `specs/` has at least one delta spec with scenarios
+- [ ] `tasks.md` has concrete, assignable tasks
+
+## Step 4 — Apply the Change
+
+Run the implementation command:
+
+```
+/opsx:apply
+```
+
+This reads `tasks.md` and orchestrates implementation across agents.
+
+**Task routing rules:**
+- [Backend] tasks → `backend-lead` or `senior-backend`
+- [Frontend] tasks → `frontend-lead` or `senior-frontend`
+- [Test] tasks → `tester`
+- General / ambiguous → `backend-lead` or `frontend-lead` depending on scope
+
+Use `delegate_task` for each task, passing full context (design + relevant specs).
+
+## Step 5 — Verify
+
+After implementation, run:
+
+```
+/opsx:verify
+```
+
+This validates:
+- **Completeness** — all tasks done, all requirements implemented
+- **Correctness** — implementation matches spec intent
+- **Coherence** — design decisions reflected in code
+
+## Step 6 — Archive
+
+When verified, run:
+
+```
+/opsx:archive
+```
+
+This merges delta specs into `openspec/specs/` and moves the change to `openspec/changes/archive/`.
+
+## Communication Rules
+
+- Always respond in the same language the user writes to you
+- Report progress after each step
+- Surface blockers immediately — never silently stall

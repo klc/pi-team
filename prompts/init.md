@@ -1,5 +1,5 @@
 ---
-description: Scan the current project, detect stack and structure, verify AGENTS.md, and report what was found.
+description: Scan the current project, detect stack and structure, initialize OpenSpec if missing, verify AGENTS.md, and report what was found.
 argument-hint: "[optional project name]"
 ---
 
@@ -25,9 +25,25 @@ find . -mindepth 1 -maxdepth 2 \
 This folder appears to be empty. /init is for scanning an existing project.
 ```
 
-## Phase 2 — Automated Discovery
+## Phase 2 — OpenSpec Initialization
 
-First, run the `stack_detect` tool for structured stack detection:
+Check if `openspec/` exists:
+
+```bash
+test -d openspec && echo "exists" || echo "missing"
+```
+
+If missing, create the OpenSpec scaffold:
+
+```bash
+mkdir -p openspec/specs openspec/changes/archive
+```
+
+Report: `✅ OpenSpec initialized at openspec/`
+
+## Phase 3 — Automated Discovery
+
+Run the `stack_detect` tool for structured stack detection:
 
 ```
 stack_detect({ verbose: true })
@@ -44,6 +60,7 @@ find . -type d \
   -not -path '*/__pycache__/*' \
   -not -path '*/dist/*' \
   -not -path '*/build/*' \
+  -not -path '*/openspec/*' \
   | sort | head -80
 
 # Existing tests
@@ -67,7 +84,7 @@ test -f pyproject.toml && echo "Python project" || true
 test -f go.mod && echo "Go project" || true
 ```
 
-## Phase 3 — Report
+## Phase 4 — Report
 
 Produce a structured report:
 
@@ -93,7 +110,7 @@ Produce a structured report:
 - [potential issues]
 ```
 
-## Phase 4 — AGENTS.md Check
+## Phase 5 — AGENTS.md Check
 
 Check if `AGENTS.md` exists and has the multi-agent setup:
 
@@ -106,36 +123,44 @@ If missing, create a minimal `AGENTS.md`:
 ```markdown
 # Multi-Agent System
 
-This project uses the **Pi Multi-Agent Orchestrator** extension.
+This project uses the **Pi Multi-Agent Orchestrator** extension with OpenSpec.
 
 ## Available Agents
 
 | Agent | Role | When to Use |
 |-------|------|-------------|
-| architect | System design | Before writing code |
+| architect | System design | Before writing code; when planning new features |
+| backend-lead | Backend coordination | Coordinating backend implementation |
+| frontend-lead | Frontend coordination | Coordinating frontend implementation |
 | reviewer | Code review | After code is written |
 | tester | QA testing | Verifying implementation |
 | debugger | Root cause analysis | When bugs are unclear |
-| ... | ... | ... |
+| project-manager | Scope & planning | Clarifying requirements, writing specs |
 
 ## Commands
 - `/agent:list` — Show all available agents
 - `/agent:plan <task>` — Generate a multi-agent execution plan
 - `/agent:run <agent> <task>` — Run a single agent manually
+- `/opsx:propose <name>` — Create a new OpenSpec change
+- `/opsx:apply [name]` — Implement tasks from a change
+- `/opsx:verify [name]` — Validate implementation against specs
+- `/opsx:archive [name]` — Archive a completed change
+- `/opsx:list` — List active changes
 ```
 
-## Phase 5 — Confirm
+## Phase 6 — Confirm
 
 ```
 ✅ Scan complete
 
-Stack:     [summary]
-Tests:     [command]
-Build:     [command]
-AGENTS.md: [status]
+Stack:       [summary]
+Tests:       [command]
+Build:       [command]
+OpenSpec:    [status]
+AGENTS.md:   [status]
 
 Next steps:
-1. Run /new-feature to start building
+1. Run /opsx:propose <feature> to start a spec-driven change
 2. Run /agent:list to see available agents
-3. Edit AGENTS.md to add project-specific rules
+3. Run /opsx:list to see active changes
 ```
