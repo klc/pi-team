@@ -7,6 +7,13 @@ import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { Type } from "typebox";
 import * as fs from "node:fs";
 import * as path from "node:path";
+import {
+  checkGraphify,
+  queryGraph,
+  findPath,
+  explainNode,
+  getGraphSummary,
+} from "./graphify.js";
 
 // ── Stack Detect Tool ──────────────────────────────────────────────
 
@@ -628,6 +635,282 @@ function analyzeFileRaw(filePath: string, _threshold: number): FileAnalysis {
   const fileScore = functions.length > 0 ? Math.max(...functions.map((f) => f.score)) : 0;
   return { functions, fileScore };
 }
+
+// ── Graphify Tools ─────────────────────────────────────────────────
+
+export function registerGraphifyTools(pi: ExtensionAPI) {
+  /**
+   * graphify_check
+   * Returns whether graphify is available and basic stats.
+   */
+  pi.registerTool({
+    name: "graphify_check",
+    label: "Graphify Check",
+    description:
+      "Check if graphify is installed and a graph exists for this project. " +
+      "Returns node/edge/community counts and paths to outputs. " +
+      "Always call this before using other graphify tools.",
+    parameters: Type.Object({}),
+    async execute(_toolCallId, _params, _signal, _onUpdate, ctx) {
+      const status = checkGraphify(ctx.cwd);
+      if (!status.available) {
+        return {
+          content: [{ type: "text", text: status.reason || "graphify not available." }],
+          details: { available: false },
+        };
+      }
+      const text = [
+        "# Graphify Status",
+        "",
+        `**Available:** Yes`,
+        `**Nodes:** ${status.nodeCount}`,
+        `**Edges:** ${status.edgeCount}`,
+        `**Communities:** ${status.communityCount}`,
+        `**Graph:** \`${status.graphPath}\``,
+      ];
+      if (status.reportPath) text.push(`**Report:** \`${status.reportPath}\``);
+      return {
+        content: [{ type: "text", text: text.join("\n") }],
+        details: status,
+      };
+    },
+  });
+
+  /**
+   * graphify_query
+   * BFS/DFS traversal over the graph.
+   */
+  pi.registerTool({
+    name: "graphify_query",
+    label: "Graphify Query",
+    description:
+      "Query the knowledge graph for context about concepts, files, or agents. " +
+      "Use BFS for broad context ('What is X connected to?') and DFS for tracing a specific chain. " +
+      "Best for: understanding architecture, finding related components, discovering cross-file connections.",
+    parameters: Type.Object({
+      question: Type.String({
+        description: "The concept or question to query the graph for.",
+      }),
+      mode: Type.Optional(
+        Type.String({
+          description: "Traversal mode: 'bfs' (default) for broad context, 'dfs' for deep path tracing.",
+        })
+      ),
+      budget: Type.Optional(
+        Type.Number({
+          description: "Approximate token budget for the response. Default 2000.",
+        })
+      ),
+    }),
+    async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
+      const mode = (params.mode as "bfs" | "dfs") ?? "bfs";
+      const budget = params.budget ?? 2000;
+      const result = queryGraph(ctx.cwd, params.question, mode, budget);
+
+      if (!result) {
+        return {
+          content: [{ type: "text", text: "No graph found. Run `graphify .` first, then try again." }],
+          isError: true,
+          details: {},
+        };
+      }
+
+      if (result.nodes.length === 0) {
+        return {
+          content: [{ type: "text", text: `No nodes matched the query: "${params.question}"` }],
+          details: { mode, startNodes: result.startNodes },
+        };
+      }
+
+      const lines: string[] = [
+        `# Graphify Query: "${params.question}"`,
+        "",
+        `**Mode:** ${mode.toUpperCase()} | **Start nodes:** ${result.startNodes.join(", ")} | **Found:** ${result.nodes.length} nodes, ${result.edges.length} edges`,
+        "",
+        "## Nodes",
+        "",
+      ];
+
+      for (const n of result.nodes.slice(0, 30)) {
+        const loc = n.source_location ? ` (${n.source_location})` : "";
+        lines.push(`- **${n.label}** [${n.file_type}] \`${n.source_file}\`${loc}`);
+      }
+      if (result.nodes.length > 30) {
+        lines.push(`- ... and ${result.nodes.length - 30} more nodes`);
+      }
+
+      if (result.edges.length > 0) {
+        lines.push("", "## Edges");
+        for (const e of result.edges.slice(0, 30)) {
+          const src = result.nodes.find((n) => n.id === e.source)?.label ?? e.source;
+          const tgt = result.nodes.find((n) => n.id === e.target)?.label ?? e.target;
+          lines.push(`- ${src} --${e.relation}--> ${tgt} [${e.confidence}]`);
+        }
+        if (result.edges.length > 30) {
+          lines.push(`- ... and ${result.edges.length - 30} more edges`);
+        }
+      }
+
+      return {
+        content: [{ type: "text", text: lines.join("\n") }],
+        details: {
+          mode,
+          nodeCount: result.nodes.length,
+          edgeCount: result.edges.length,
+          startNodes: result.startNodes,
+        },
+      };
+    },
+  });
+
+  /**
+   * graphify_path
+   * Shortest path between two concepts.
+   */
+  pi.registerTool({
+    name: "graphify_path",
+    label: "Graphify Path",
+    description:
+      "Find the shortest path between two concepts in the knowledge graph. " +
+      "Useful for tracing dependencies, understanding how components relate, or finding hidden connections.",
+    parameters: Type.Object({
+      from: Type.String({
+        description: "Source concept name (partial match supported).",
+      }),
+      to: Type.String({
+        description: "Target concept name (partial match supported).",
+      }),
+    }),
+    async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
+      const result = findPath(ctx.cwd, params.from, params.to);
+
+      if (!result) {
+        return {
+          content: [{ type: "text", text: "No graph found. Run `graphify .` first." }],
+          isError: true,
+          details: {},
+        };
+      }
+
+      if (!result.found) {
+        return {
+          content: [{ type: "text", text: `No path found between "${params.from}" and "${params.to}".` }],
+          details: { found: false },
+        };
+      }
+
+      const lines: string[] = [
+        `# Path: ${params.from} → ${params.to}`,
+        "",
+        `**Hops:** ${result.hops}`,
+        "",
+      ];
+
+      for (let i = 0; i < result.path.length; i++) {
+        const step = result.path[i];
+        if (i === 0) {
+          lines.push(`1. **${step.node.label}** [start]`);
+        } else {
+          lines.push(`${i + 1}. **${step.node.label}** — *${step.edgeRelation}* [${step.edgeConfidence}]`);
+        }
+      }
+
+      return {
+        content: [{ type: "text", text: lines.join("\n") }],
+        details: { found: true, hops: result.hops },
+      };
+    },
+  });
+
+  /**
+   * graphify_explain
+   * Explain a single node and its connections.
+   */
+  pi.registerTool({
+    name: "graphify_explain",
+    label: "Graphify Explain",
+    description:
+      "Get a plain-language explanation of a concept/node from the knowledge graph, " +
+      "including all its direct connections, relations, and confidence levels.",
+    parameters: Type.Object({
+      concept: Type.String({
+        description: "The concept/node to explain (partial match supported).",
+      }),
+    }),
+    async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
+      const result = explainNode(ctx.cwd, params.concept);
+
+      if (!result) {
+        return {
+          content: [{ type: "text", text: "No graph found. Run `graphify .` first." }],
+          isError: true,
+          details: {},
+        };
+      }
+
+      if (!result.node) {
+        return {
+          content: [{ type: "text", text: `No node matching "${params.concept}" found in the graph.` }],
+          details: { found: false },
+        };
+      }
+
+      const n = result.node;
+      const lines: string[] = [
+        `# ${n.label}`,
+        "",
+        `**Type:** ${n.file_type}`,
+        `**Source:** \`${n.source_file}\`${n.source_location ? ` ${n.source_location}` : ""}`,
+        `**Connections:** ${result.connections.length}`,
+        "",
+        "## Related",
+        "",
+      ];
+
+      for (const c of result.connections) {
+        lines.push(`- **${c.label}** — *${c.relation}* [${c.confidence}] (from \`${c.sourceFile}\`)`);
+      }
+
+      return {
+        content: [{ type: "text", text: lines.join("\n") }],
+        details: {
+          nodeId: n.id,
+          label: n.label,
+          connectionCount: result.connections.length,
+        },
+      };
+    },
+  });
+
+  /**
+   * graphify_report
+   * Returns the GRAPH_REPORT.md summary.
+   */
+  pi.registerTool({
+    name: "graphify_report",
+    label: "Graphify Report",
+    description:
+      "Get a summary of the Graph Report including God Nodes, Surprising Connections, and Communities. " +
+      "Useful for getting a high-level architectural overview before planning or debugging.",
+    parameters: Type.Object({}),
+    async execute(_toolCallId, _params, _signal, _onUpdate, ctx) {
+      const summary = getGraphSummary(ctx.cwd);
+      if (!summary) {
+        return {
+          content: [{ type: "text", text: "No graphify report found. Run `graphify .` first." }],
+          isError: true,
+          details: {},
+        };
+      }
+      return {
+        content: [{ type: "text", text: summary }],
+        details: {},
+      };
+    },
+  });
+}
+
+// ── Helpers ────────────────────────────────────────────────────────
 
 function analyzeFile(filePath: string, displayPath: string, threshold: number): string {
   const analysis = analyzeFileRaw(filePath, threshold);

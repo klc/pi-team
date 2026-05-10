@@ -8,7 +8,6 @@ This project uses the **Pi Multi-Agent Orchestrator** extension.
 |-------|------|-------------|
 | `architect` | System design, data models, API contracts | Before writing code; when planning new features |
 | `backend-lead` | Backend task coordination & quality ownership | Coordinating backend implementation → review → testing |
-| `coder` | Implementation, refactoring, bug fixes | When you need actual code written |
 | `debugger` | Root cause analysis & fix recommendations | When bugs are unclear or complex |
 | `designer` | Visual design system & component patterns | Establishing UI/UX standards |
 | `frontend-lead` | Frontend task coordination & quality ownership | Coordinating frontend implementation → review → SEO → testing |
@@ -42,6 +41,11 @@ This project uses the **Pi Multi-Agent Orchestrator** extension.
 ### Tools
 - `stack_detect({ verbose?: boolean })` — Auto-detect project tech stack
 - `complexity_score({ path: string, threshold?: number, top?: number })` — Estimate cyclomatic complexity
+- `graphify_check()` — Check if graphify knowledge graph is available
+- `graphify_query({ question, mode?, budget? })` — Query the codebase knowledge graph (BFS/DFS)
+- `graphify_path({ from, to })` — Find shortest path between two concepts
+- `graphify_explain({ concept })` — Explain a node and its connections
+- `graphify_report()` — Get architectural overview (God Nodes, Surprising Connections, Communities)
 
 ### Reference Skills
 Agent'lar `read` tool'uyla bu referans dosyalarını okuyabilir:
@@ -53,6 +57,7 @@ Agent'lar `read` tool'uyla bu referans dosyalarını okuyabilir:
 | Verification Before Completion | `.pi/skills/verification-before-completion/SKILL.md` | All developer & tester agents |
 | Receiving Code Review | `.pi/skills/receiving-code-review/SKILL.md` | All developer agents |
 | Project Stack Template | `.pi/skills/project-stack-template/SKILL.md` | Template for project setup |
+| Graphify | `.pi/skills/graphify/SKILL.md` | project-manager, architect, debugger, backend-lead, frontend-lead |
 
 ### LLM Tools
 The supervisor (main pi LLM) can also delegate via tools:
@@ -60,13 +65,30 @@ The supervisor (main pi LLM) can also delegate via tools:
 - `delegate_task` — Delegate a subtask to a specific agent
 - `execute_plan` — Run a structured plan across multiple agents
 
+## Graphify Integration
+
+When `graphify` is installed and `graphify-out/graph.json` exists, the orchestrator automatically injects architectural context into `/agent:plan` operations. Agents with graphify tools in their `allowed-tools` can query the persistent knowledge graph for:
+
+- **God Nodes** — Core abstractions with the highest connectivity
+- **Surprising Connections** — Hidden cross-file dependencies
+- **Communities** — Functional clusters in the codebase
+- **Path Tracing** — Dependency chains between components
+
+Agents that use graphify: `project-manager`, `architect`, `debugger`, `backend-lead`, `frontend-lead`
+
+To enable graphify for a project:
+```bash
+pip install graphifyy
+graphify .
+```
+
 ## Workflow Example
 
 ```
 User: "Implement user authentication with JWT"
 
 1. Supervisor decides to plan first
-2. /agent:plan → produces plan:
+2. /agent:plan → queries graphify for auth-related communities and dependencies → produces plan:
    1. architect → Design auth flow and token strategy
    2. senior-backend → Implement auth middleware and routes
    3. reviewer → Review for security issues
@@ -74,6 +96,7 @@ User: "Implement user authentication with JWT"
    5. tester → Write tests for auth flow
 
 3. execute_plan → runs agents sequentially
+   - Each agent may query graphify for architectural context
 4. Supervisor synthesizes results and presents to user
 ```
 

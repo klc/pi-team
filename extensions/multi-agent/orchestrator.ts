@@ -33,7 +33,7 @@ export class Orchestrator {
 
       // Match numbered task lines like:
       // 1. architect → Design login flow with JWT
-      // 2. coder: Implement auth controller
+      // 2. senior-backend: Implement auth controller
       const match = trimmed.match(
         /^\d+\.\s*([\w-]+)\s*(?:→|:|-)\s*(.+)$/i
       );

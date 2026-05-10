@@ -113,7 +113,6 @@ This project uses the **Pi Multi-Agent Orchestrator** extension.
 | Agent | Role | When to Use |
 |-------|------|-------------|
 | architect | System design | Before writing code |
-| coder | Implementation | Writing/refactoring code |
 | reviewer | Code review | After code is written |
 | tester | QA testing | Verifying implementation |
 | debugger | Root cause analysis | When bugs are unclear |

@@ -1,5 +1,5 @@
 ---
-description: Investigate and fix a bug. Supervisor creates a bug task context and routes it through debugger → coder → reviewer → tester.
+description: Investigate and fix a bug. Supervisor creates a bug task context and routes it through debugger → developer → reviewer → tester.
 argument-hint: "<bug description>"
 ---
 

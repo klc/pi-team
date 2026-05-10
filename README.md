@@ -1,6 +1,6 @@
 # pi-team
 
-**Multi-Agent Orchestrator** for [Pi](https://pi.dev) — a package that adds 17 specialized AI agents to your coding assistant.
+**Multi-Agent Orchestrator** for [Pi](https://pi.dev) — a package that adds 16 specialized AI agents to your coding assistant.
 
 Each agent has a dedicated role (architect, reviewer, security-auditor, etc.) and can be invoked individually or orchestrated into multi-step execution plans.
 
@@ -20,7 +20,7 @@ After installation, Pi will auto-load the extension and agents on the next start
 
 | Command | Description |
 |---------|-------------|
-| `/agent:list` | Show all 17 built-in agents |
+| `/agent:list` | Show all 16 built-in agents |
 | `/agent:run <agent> <task>` | Run a single agent with a task |
 | `/agent:plan <description>` | Generate a structured multi-agent execution plan |
 
@@ -57,7 +57,6 @@ The LLM can call the `execute_plan` tool with a numbered plan:
 |-------|------|
 | `architect` | System design, data models, API contracts |
 | `backend-lead` | Backend coordination & quality ownership |
-| `coder` | Implementation, refactoring, bug fixes |
 | `debugger` | Root cause analysis & fix recommendations |
 | `designer` | Visual design system & component patterns |
 | `frontend-lead` | Frontend coordination & quality ownership |
@@ -104,6 +103,26 @@ Additional tools available to all agents:
 
 - **`stack_detect`** — Auto-detect project tech stack
 - **`complexity_score`** — Estimate cyclomatic complexity of files
+
+## Graphify Integration
+
+When [graphify](https://github.com/safishamsi/graphify) is installed, agents gain persistent knowledge graph access:
+
+- **`graphify_check`** — Verify graphify is available
+- **`graphify_query`** — BFS/DFS traversal for architectural context
+- **`graphify_path`** — Shortest path between two concepts
+- **`graphify_explain`** — Deep dive into a node and its connections
+- **`graphify_report`** — High-level overview (God Nodes, Surprising Connections, Communities)
+
+Agents with graphify support: `project-manager`, `architect`, `debugger`, `backend-lead`, `frontend-lead`
+
+To set up graphify for a project:
+```bash
+pip install graphifyy
+graphify .
+```
+
+The `/agent:plan` command automatically includes graphify context when a graph is present.
 
 ## Package Structure
 

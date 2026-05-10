@@ -21,7 +21,12 @@ import { Orchestrator } from "./orchestrator.js";
 import type { AgentRunResult } from "./types.js";
 
 import agentModelPicker from "./agent-model-picker.js";
-import { registerStackDetectTool, registerComplexityScoreTool } from "./project-tools.js";
+import {
+  registerStackDetectTool,
+  registerComplexityScoreTool,
+  registerGraphifyTools,
+} from "./project-tools.js";
+import { checkGraphify, getGraphSummary } from "./graphify.js";
 
 const BUILTIN_AGENTS_DIR = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -34,6 +39,7 @@ export default function (pi: ExtensionAPI) {
   agentModelPicker(pi);
   registerStackDetectTool(pi);
   registerComplexityScoreTool(pi);
+  registerGraphifyTools(pi);
   // ── State ──────────────────────────────────────────────────────────
 
   let registry: AgentRegistry;
@@ -109,7 +115,7 @@ export default function (pi: ExtensionAPI) {
    * Run a single agent with a task
    */
   pi.registerCommand("agent:run", {
-    description: "Run an agent with a task: /agent:run coder 'Implement auth'",
+    description: "Run an agent with a task: /agent:run senior-backend 'Implement auth'",
     handler: async (args, ctx) => {
       const trimmed = args.trim();
       if (!trimmed) {
@@ -197,11 +203,29 @@ export default function (pi: ExtensionAPI) {
 
       // Inject a structured planning prompt as a user message
       // This triggers the LLM to produce a numbered plan
+      let graphifyContext = "";
+      const graphifyStatus = checkGraphify(ctx.cwd);
+      if (graphifyStatus.available) {
+        const summary = getGraphSummary(ctx.cwd);
+        if (summary) {
+          graphifyContext = `
+## Project Knowledge Graph (graphify)
+The project has a persistent knowledge graph with ${graphifyStatus.nodeCount} nodes, ${graphifyStatus.edgeCount} edges, and ${graphifyStatus.communityCount} communities.
+
+Key insights from the graph:
+${summary.slice(0, 3000)}
+
+When creating the plan, consider the architectural communities and cross-component connections described above.
+`;
+        }
+      }
+
       const planPrompt = `
 You are the **Supervisor** agent. Create a structured multi-agent execution plan for the following task.
 
 ## Available Agents
 ${availableAgents}
+${graphifyContext}
 
 ## Task
 ${args.trim()}
@@ -217,6 +241,7 @@ Rules:
 - Use ONLY the agent names listed above.
 - Each step should be a concrete, delegable subtask.
 - Include a brief summary line at the top describing the overall approach.
+- If a knowledge graph is provided above, use it to understand cross-component dependencies and assign agents accordingly.
 - The output will be parsed automatically; stick to the format strictly.
 `;
 
@@ -268,7 +293,7 @@ Rules:
     ],
     parameters: Type.Object({
       agent: Type.String({
-        description: "Name of the agent to delegate to (e.g., 'coder', 'reviewer')",
+        description: "Name of the agent to delegate to (e.g., 'senior-backend', 'reviewer')",
       }),
       task: Type.String({
         description:
