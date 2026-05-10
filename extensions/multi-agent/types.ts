@@ -9,7 +9,6 @@ export interface AgentDefinition {
   systemPromptPath: string;
   allowedTools?: string[];
   model?: string;
-  thinkingLevel?: string;
 }
 
 export interface AgentRegistry {

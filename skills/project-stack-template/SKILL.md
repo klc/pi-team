@@ -6,7 +6,7 @@ description: Template for documenting this project stack. Copy and fill in your 
 # Project Stack Template
 
 > Copy this file, fill in every section for your actual stack, and save as `.pi/project-stack.md`.
-> Agent'lar projenin stack bilgisine buradan erişir.
+> Agents access the project's stack information from here.
 
 ---
 

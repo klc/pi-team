@@ -1,3 +1,8 @@
 .idea
 .pi
 node_modules
+dist/
+openspec/
+graphify-out/
+*.map
+.DS_Store

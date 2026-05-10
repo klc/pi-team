@@ -76,6 +76,12 @@ export class AgentRegistry implements IAgentRegistry {
       }
     }
 
+    // Parse description from frontmatter if present
+    const descMatch = content.match(/^description:\s*(.+)$/m);
+    if (descMatch) {
+      description = descMatch[1].trim();
+    }
+
     // Parse allowed-tools from frontmatter if present
     const allowedToolsMatch = content.match(/^allowed-tools:\s*(.+)$/m);
     const allowedTools = allowedToolsMatch

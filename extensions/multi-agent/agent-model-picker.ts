@@ -72,7 +72,7 @@ function updateAgentModel(filePath: string, newModel: string): void {
   } else {
     const frontmatterEnd = content.indexOf("\n---\n");
     if (frontmatterEnd !== -1) {
-      const insertPos = frontmatterEnd + "\n---\n".length;
+      const insertPos = frontmatterEnd + 1; // after \n, before ---
       content =
         content.slice(0, insertPos) +
         `model: ${newModel}\n` +
@@ -121,23 +121,7 @@ class AgentModelPicker implements Component {
     this.onNotify = onNotify;
     this.requestRender = requestRender;
 
-    const agentSelectItems: SelectItem[] = agents.map((a) => ({
-      value: a.name,
-      label: a.name,
-      description: a.currentModel
-        ? `model: ${a.currentModel}`
-        : "no model assigned",
-    }));
-
-    this.agentList = new SelectList(agentSelectItems, Math.min(agentSelectItems.length, 10), {
-      selectedPrefix: (t: string) => theme.fg("accent", t),
-      selectedText: (t: string) => theme.fg("accent", t),
-      description: (t: string) => theme.fg("muted", t),
-      scrollInfo: (t: string) => theme.fg("dim", t),
-      noMatch: (t: string) => theme.fg("dim", t),
-    });
-    this.agentList.onSelect = (item) => this.enterModelMode(item.value);
-    this.agentList.onCancel = () => onDone();
+    this.agentList = this.buildAgentList();
 
     this.modelItems = [
       { value: "", label: "(none)", description: "Use pi's default model" },
@@ -192,9 +176,30 @@ class AgentModelPicker implements Component {
     this.requestRender();
   }
 
+  private buildAgentList(): SelectList {
+    const items: SelectItem[] = this.agents.map((a) => ({
+      value: a.name,
+      label: a.name,
+      description: a.currentModel
+        ? `model: ${a.currentModel}`
+        : "no model assigned",
+    }));
+    const list = new SelectList(items, Math.min(items.length, 10), {
+      selectedPrefix: (t: string) => this.theme.fg("accent", t),
+      selectedText: (t: string) => this.theme.fg("accent", t),
+      description: (t: string) => this.theme.fg("muted", t),
+      scrollInfo: (t: string) => this.theme.fg("dim", t),
+      noMatch: (t: string) => this.theme.fg("dim", t),
+    });
+    list.onSelect = (item) => this.enterModelMode(item.value);
+    list.onCancel = () => this.onDone();
+    return list;
+  }
+
   private enterAgentMode(): void {
     this.mode = "agents";
     this.selectedAgent = undefined;
+    this.agentList = this.buildAgentList();
     this.invalidate();
     this.requestRender();
   }
@@ -213,19 +218,6 @@ class AgentModelPicker implements Component {
         `Set ${this.selectedAgent.name} → ${modelValue}`,
         "info"
       );
-    }
-
-    // Update agent list item description
-    const agentSelectItems = this.agentList as any;
-    if (agentSelectItems.items) {
-      const item = agentSelectItems.items.find(
-        (i: SelectItem) => i.value === this.selectedAgent!.name
-      );
-      if (item) {
-        item.description = this.selectedAgent.currentModel
-          ? `model: ${this.selectedAgent.currentModel}`
-          : "no model assigned";
-      }
     }
 
     this.enterAgentMode();

@@ -279,22 +279,22 @@ export function findPath(cwd: string, fromTerm: string, toTerm: string): PathRes
   }
 
   // Reconstruct path
-  const path: { node: GraphNode; edgeRelation?: string; edgeConfidence?: string }[] = [];
+  const pathSteps: { node: GraphNode; edgeRelation?: string; edgeConfidence?: string }[] = [];
   let current = tgt;
   while (current !== src) {
     const p = parent.get(current);
     if (!p) break;
     const node = nodeMap.get(current);
     if (node) {
-      path.unshift({ node, edgeRelation: p.edge.relation, edgeConfidence: p.edge.confidence });
+      pathSteps.unshift({ node, edgeRelation: p.edge.relation, edgeConfidence: p.edge.confidence });
     }
     current = p.node;
   }
 
   const srcNode = nodeMap.get(src);
-  if (srcNode) path.unshift({ node: srcNode });
+  if (srcNode) pathSteps.unshift({ node: srcNode });
 
-  return { found: true, hops: path.length - 1, path };
+  return { found: true, hops: pathSteps.length - 1, path: pathSteps };
 }
 
 export function explainNode(cwd: string, term: string): { node: GraphNode | null; connections: { label: string; relation: string; confidence: string; sourceFile: string }[] } | null {

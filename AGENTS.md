@@ -28,8 +28,8 @@ This project uses the **Pi Multi-Agent Orchestrator** extension.
 ### Prompt Templates
 - `/brainstorm <idea>` — Collaborative ideation session
 - `/bugfix <description>` — Bug investigation & fix pipeline
-- `/init` — Scan project structure and stack
-- `/new-feature <description>` — End-to-end feature delivery
+- `/init` — Scan project structure and stack, initialize OpenSpec
+- `/new-feature <description>` — End-to-end feature delivery via OpenSpec
 - `/review` — Full code review on current changes
 
 ### Interactive Commands
@@ -37,6 +37,14 @@ This project uses the **Pi Multi-Agent Orchestrator** extension.
 - `/agent:plan <task>` — Generate a multi-agent execution plan
 - `/agent:run <agent> <task>` — Run a single agent manually
 - `/agent:model` — Assign models to agents via TUI
+
+### OpenSpec Commands (Spec-Driven Workflow)
+- `/opsx:propose <name>` — Create a new change with planning artifacts
+- `/opsx:apply [name]` — Implement tasks from a change
+- `/opsx:verify [name]` — Validate implementation against specs
+- `/opsx:archive [name]` — Archive a completed change and merge delta specs
+- `/opsx:sync` — Merge all pending delta specs into main specs
+- `/opsx:list` — List all active changes
 
 ### Tools
 - `stack_detect({ verbose?: boolean })` — Auto-detect project tech stack
@@ -48,7 +56,7 @@ This project uses the **Pi Multi-Agent Orchestrator** extension.
 - `graphify_report()` — Get architectural overview (God Nodes, Surprising Connections, Communities)
 
 ### Reference Skills
-Agent'lar `read` tool'uyla bu referans dosyalarını okuyabilir:
+Agents can read these reference files using the `read` tool:
 
 | Skill | File | Who Uses It |
 |-------|------|-------------|
@@ -58,6 +66,7 @@ Agent'lar `read` tool'uyla bu referans dosyalarını okuyabilir:
 | Receiving Code Review | `.pi/skills/receiving-code-review/SKILL.md` | All developer agents |
 | Project Stack Template | `.pi/skills/project-stack-template/SKILL.md` | Template for project setup |
 | Graphify | `.pi/skills/graphify/SKILL.md` | project-manager, architect, debugger, backend-lead, frontend-lead |
+| OpenSpec | `.pi/skills/openspec/SKILL.md` | architect, project-manager, backend-lead, frontend-lead, reviewer, tester |
 
 ### LLM Tools
 The supervisor (main pi LLM) can also delegate via tools:
@@ -82,7 +91,42 @@ pip install graphifyy
 graphify .
 ```
 
-## Workflow Example
+## OpenSpec Workflow Example
+
+```
+User: "/opsx:propose add-dark-mode"
+
+AI:  Created openspec/changes/add-dark-mode/
+     ✓ proposal.md — why we're doing this
+     ✓ specs/ui/spec.md — delta spec with scenarios
+     ✓ design.md — technical approach
+     ✓ tasks.md — implementation checklist
+     Ready for implementation!
+
+User: "/opsx:apply"
+
+AI:  Implementing tasks...
+     ✓ 1.1 [Backend] Add theme context provider
+     ✓ 1.2 [Frontend] Create toggle component
+     ✓ 2.1 [Frontend] Add CSS variables
+     ✓ 2.2 [Backend] Wire up localStorage
+     All tasks complete!
+
+User: "/opsx:verify"
+
+AI:  Verifying add-dark-mode...
+     COMPLETENESS: ✓ All tasks done, all requirements implemented
+     CORRECTNESS:  ✓ Matches spec intent
+     COHERENCE:    ✓ Naming consistent with design
+     Ready to archive: Yes
+
+User: "/opsx:archive"
+
+AI:  ✓ Merged delta specs into openspec/specs/ui/spec.md
+     ✓ Archived to openspec/changes/archive/2025-05-10-add-dark-mode/
+```
+
+## Legacy Workflow Example
 
 ```
 User: "Implement user authentication with JWT"

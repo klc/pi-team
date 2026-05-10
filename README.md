@@ -1,8 +1,8 @@
 # pi-team
 
-**Multi-Agent Orchestrator** for [Pi](https://pi.dev) — a package that adds 16 specialized AI agents to your coding assistant.
+**Multi-Agent Orchestrator** for [Pi](https://pi.dev) — a package that adds 16 specialized AI agents to your coding assistant, now with **OpenSpec** spec-driven workflow integration.
 
-Each agent has a dedicated role (architect, reviewer, security-auditor, etc.) and can be invoked individually or orchestrated into multi-step execution plans.
+Each agent has a dedicated role (architect, reviewer, security-auditor, etc.) and can be invoked individually or orchestrated into multi-step execution plans. OpenSpec adds a lightweight spec layer so you agree on what to build before any code is written.
 
 ## Quick Start
 
@@ -18,13 +18,53 @@ After installation, Pi will auto-load the extension and agents on the next start
 
 ## Available Commands
 
+### Agent Commands
+
 | Command | Description |
 |---------|-------------|
 | `/agent:list` | Show all 16 built-in agents |
 | `/agent:run <agent> <task>` | Run a single agent with a task |
 | `/agent:plan <description>` | Generate a structured multi-agent execution plan |
 
-## Example Usage
+### OpenSpec Commands (Spec-Driven Workflow)
+
+| Command | Description |
+|---------|-------------|
+| `/opsx:propose <name>` | Create a new change with planning artifacts (proposal, specs, design, tasks) |
+| `/opsx:apply [name]` | Implement tasks from a change using the right agents |
+| `/opsx:verify [name]` | Validate implementation against specs |
+| `/opsx:archive [name]` | Archive a completed change and merge delta specs |
+| `/opsx:sync` | Merge all pending delta specs into main specs |
+| `/opsx:list` | List all active changes |
+
+## OpenSpec Workflow Example
+
+```
+You: /opsx:propose add-dark-mode
+
+AI:  Created openspec/changes/add-dark-mode/
+     ✓ proposal.md — why we're doing this, what's changing
+     ✓ specs/ui/spec.md — requirements and scenarios
+     ✓ design.md — technical approach
+     ✓ tasks.md — implementation checklist
+     Ready for implementation!
+
+You: /opsx:apply
+
+AI:  Implementing tasks...
+     ✓ 1.1 [Backend] Add theme context provider
+     ✓ 1.2 [Frontend] Create toggle component
+     ✓ 2.1 [Frontend] Add CSS variables
+     ✓ 2.2 [Backend] Wire up localStorage
+     All tasks complete!
+
+You: /opsx:archive
+
+AI:  ✓ Merged delta specs into openspec/specs/ui/spec.md
+     ✓ Archived to openspec/changes/archive/2025-05-10-add-dark-mode/
+```
+
+## Legacy Agent Workflow
 
 ### Run a single agent
 
@@ -55,7 +95,7 @@ The LLM can call the `execute_plan` tool with a numbered plan:
 
 | Agent | Role |
 |-------|------|
-| `architect` | System design, data models, API contracts |
+| `architect` | System design, data models, API contracts, OpenSpec design artifacts |
 | `backend-lead` | Backend coordination & quality ownership |
 | `debugger` | Root cause analysis & fix recommendations |
 | `designer` | Visual design system & component patterns |
@@ -63,7 +103,7 @@ The LLM can call the `execute_plan` tool with a numbered plan:
 | `junior-backend` | Straightforward backend tasks, CRUD, tests |
 | `junior-frontend` | Simple UI components, styling fixes |
 | `performance-analyst` | Bottleneck identification & optimization |
-| `project-manager` | Scope clarification, sprint planning |
+| `project-manager` | Scope clarification, sprint planning, OpenSpec specs & tasks |
 | `researcher` | Technology research & library comparison |
 | `reviewer` | Code review, security, performance audit |
 | `security-auditor` | OWASP Top 10, vulnerability assessment |
@@ -128,9 +168,10 @@ The `/agent:plan` command automatically includes graphify context when a graph i
 
 ```
 extensions/    # Extension source code
-agents/        # Built-in agent definitions (17 agents)
+agents/        # Built-in agent definitions (16 agents)
 skills/        # Reusable skill templates
-prompts/       # Prompt templates (brainstorm, bugfix, new-feature, etc.)
+               ├── openspec/SKILL.md   # OpenSpec artifact formats & workflow
+prompts/       # Prompt templates (brainstorm, bugfix, new-feature, init, etc.)
 ```
 
 ## Requirements

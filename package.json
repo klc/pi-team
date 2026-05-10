@@ -1,14 +1,14 @@
 {
   "name": "pi-team",
   "version": "0.2.0",
-  "description": "Multi-Agent Orchestrator extension for Pi with 17 specialized agents",
+  "description": "Multi-Agent Orchestrator extension for Pi with 16 specialized agents",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/klc/pi-team.git"
   },
   "type": "module",
   "files": [
-    "extensions/",
+    "dist/",
     "skills/",
     "prompts/",
     "agents/",
